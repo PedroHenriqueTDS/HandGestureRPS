@@ -5,54 +5,47 @@ from PyQt5.QtCore import QTimer, QPropertyAnimation, QRect, Qt
 import cv2
 
 
+# Segunda versão da interface
 class HandGestureRPSAPP(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.init_ui()
+        self.iniciar_ui()
         self.cap = cv2.VideoCapture(0)
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_frame)
+        self.timer.timeout.connect(self.atualizar_frame)
 
-    def init_ui(self):
+    def iniciar_ui(self):
         self.setWindowTitle("HandGestureRPS")
         self.setGeometry(100, 100, 900, 700)
         
-        # Menu Bar
-        self.menu_bar = self.menuBar()
+        self.bar_menu = self.menuBar()
         
-        # Criar o menu 'Jogo'
-        jogo_menu = QMenu("Jogo", self)
-        self.menu_bar.addMenu(jogo_menu)
+        menu_jogo = QMenu("Jogo", self)
+        self.bar_menu.addMenu(menu_jogo)
         
-        # Adicionar modos de jogo no menu 'Jogo'
-        modo_jogo_action = QAction("Escolher Modo de Jogo", self)
-        jogo_menu.addAction(modo_jogo_action)
-        modo_jogo_action.triggered.connect(self.show_game_modes)
+        acao_modo_jogo = QAction("Escolher Modo de Jogo", self)
+        menu_jogo.addAction(acao_modo_jogo)
+        acao_modo_jogo.triggered.connect(self.mostrar_modos_de_jogo)
         
-        # Criar o menu 'Opções'
-        opcoes_menu = QMenu("Opções", self)
-        self.menu_bar.addMenu(opcoes_menu)
+        menu_opcoes = QMenu("Opções", self)
+        self.bar_menu.addMenu(menu_opcoes)
         
-        # Adicionar opções ao menu 'Opções'
-        config_action = QAction("Configurações", self)
-        opcoes_menu.addAction(config_action)
-        config_action.triggered.connect(self.show_configurations)
+        acao_config = QAction("Configurações", self)
+        menu_opcoes.addAction(acao_config)
+        acao_config.triggered.connect(self.mostrar_configuracoes)
 
-        # Alterado o gradiente de fundo
         self.setStyleSheet(
             "background: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #4e54c8, stop:1 #8f94fb);"
         )
 
-        # Video Label
-        self.video_label = QLabel(self)
-        self.video_label.setFixedSize(640, 480)
-        self.video_label.setStyleSheet(
+        self.rotulo_video = QLabel(self)
+        self.rotulo_video.setFixedSize(640, 480)
+        self.rotulo_video.setStyleSheet(
             "border: 5px solid #16a085; border-radius: 10px; background-color: white;"
         )
 
-        # Result Labels
-        self.resultado_label = QLabel("Resultado: ")
-        self.resultado_label.setStyleSheet(
+        self.rotulo_resultado = QLabel("Resultado: ")
+        self.rotulo_resultado.setStyleSheet(
             """
             font-size: 24px; 
             font-weight: bold; 
@@ -63,8 +56,8 @@ class HandGestureRPSAPP(QMainWindow):
             """
         )
 
-        self.computador_label = QLabel("Computador: ")
-        self.computador_label.setStyleSheet(
+        self.rotulo_computador = QLabel("Computador: ")
+        self.rotulo_computador.setStyleSheet(
             """
             font-size: 20px; 
             color: #ecf0f1; 
@@ -74,8 +67,8 @@ class HandGestureRPSAPP(QMainWindow):
             """
         )
 
-        self.placar_label = QLabel("Vitórias: 0 | Derrotas: 0 | Empates: 0")
-        self.placar_label.setStyleSheet(
+        self.rotulo_placar = QLabel("Vitórias: 0 | Derrotas: 0 | Empates: 0")
+        self.rotulo_placar.setStyleSheet(
             """
             font-size: 18px; 
             color: #bdc3c7; 
@@ -85,9 +78,8 @@ class HandGestureRPSAPP(QMainWindow):
             """
         )
 
-        # Buttons
-        self.start_button = QPushButton("Iniciar Jogo")
-        self.start_button.setStyleSheet(
+        self.botao_iniciar = QPushButton("Iniciar Jogo")
+        self.botao_iniciar.setStyleSheet(
             """
             QPushButton {
                 font-size: 20px; 
@@ -105,10 +97,10 @@ class HandGestureRPSAPP(QMainWindow):
             }
             """
         )
-        self.start_button.clicked.connect(self.start_game)
+        self.botao_iniciar.clicked.connect(self.iniciar_jogo)
 
-        self.quit_button = QPushButton("Sair")
-        self.quit_button.setStyleSheet(
+        self.botao_sair = QPushButton("Sair")
+        self.botao_sair.setStyleSheet(
             """
             QPushButton {
                 font-size: 20px; 
@@ -126,54 +118,51 @@ class HandGestureRPSAPP(QMainWindow):
             }
             """
         )
-        self.quit_button.clicked.connect(self.close)
+        self.botao_sair.clicked.connect(self.close)
 
-        # Layout
         layout = QVBoxLayout()
-        layout.addWidget(self.video_label, alignment=Qt.AlignCenter)
-        layout.addWidget(self.resultado_label, alignment=Qt.AlignCenter)
-        layout.addWidget(self.computador_label, alignment=Qt.AlignCenter)
-        layout.addWidget(self.placar_label, alignment=Qt.AlignCenter)
-        layout.addWidget(self.start_button, alignment=Qt.AlignCenter)
-        layout.addWidget(self.quit_button, alignment=Qt.AlignCenter)
+        layout.addWidget(self.rotulo_video, alignment=Qt.AlignCenter)
+        layout.addWidget(self.rotulo_resultado, alignment=Qt.AlignCenter)
+        layout.addWidget(self.rotulo_computador, alignment=Qt.AlignCenter)
+        layout.addWidget(self.rotulo_placar, alignment=Qt.AlignCenter)
+        layout.addWidget(self.botao_iniciar, alignment=Qt.AlignCenter)
+        layout.addWidget(self.botao_sair, alignment=Qt.AlignCenter)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
 
-        central_widget = QWidget()
-        central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
+        widget_central = QWidget()
+        widget_central.setLayout(layout)
+        self.setCentralWidget(widget_central)
 
-    def start_game(self):
+    def iniciar_jogo(self):
         self.timer.start(30)
-        self.animate_label(self.resultado_label)
+        self.animar_rotulo(self.rotulo_resultado)
 
-    def animate_label(self, label):
-        animation = QPropertyAnimation(label, b"geometry")
-        animation.setDuration(600)
-        animation.setStartValue(QRect(label.x(), label.y(), label.width(), label.height()))
-        animation.setEndValue(QRect(label.x(), label.y() - 10, label.width(), label.height()))
-        animation.setLoopCount(4)
-        animation.start()
+    def animar_rotulo(self, rotulo):
+        animacao = QPropertyAnimation(rotulo, b"geometry")
+        animacao.setDuration(600)
+        animacao.setStartValue(QRect(rotulo.x(), rotulo.y(), rotulo.width(), rotulo.height()))
+        animacao.setEndValue(QRect(rotulo.x(), rotulo.y() - 10, rotulo.width(), rotulo.height()))
+        animacao.setLoopCount(4)
+        animacao.start()
 
-    def update_frame(self):
+    def atualizar_frame(self):
         ret, frame = self.cap.read()
         if not ret:
             return
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        height, width, channel = frame.shape
-        bytes_per_line = channel * width
-        qt_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(qt_image)
-        self.video_label.setPixmap(pixmap)
+        altura, largura, canal = frame.shape
+        bytes_por_linha = canal * largura
+        imagem_qt = QImage(frame.data, largura, altura, bytes_por_linha, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(imagem_qt)
+        self.rotulo_video.setPixmap(pixmap)
 
-    def show_game_modes(self):
-        # Função para mostrar modos de jogo
+    def mostrar_modos_de_jogo(self):
         print("Modo de Jogo Selecionado")
 
-    def show_configurations(self):
-        # Função para exibir configurações
+    def mostrar_configuracoes(self):
         print("Configurações do Jogo")
 
     def closeEvent(self, event):
@@ -184,6 +173,6 @@ class HandGestureRPSAPP(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = HandGestureRPSAPP()
-    window.show()
+    janela = HandGestureRPSAPP()
+    janela.show()
     sys.exit(app.exec_())
