@@ -26,7 +26,6 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtMultimedia import QSoundEffect
 
-# Configure advanced logging
 def setup_logging():
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
@@ -43,7 +42,6 @@ def setup_logging():
 
 logger = setup_logging()
 
-# Enhanced data structures
 class GameMode(Enum):
     SINGLE_PLAYER = "single_player"
     MULTIPLAYER_LOCAL = "multiplayer_local"
@@ -94,7 +92,6 @@ class GameSettings:
     show_landmarks: bool = True
 
 class GestureDetector(QThread):
-    """Advanced gesture detection with ML and filtering"""
     gesture_detected = pyqtSignal(str, float, int)
     frame_processed = pyqtSignal(np.ndarray)
     
@@ -109,7 +106,6 @@ class GestureDetector(QThread):
         self.gesture_history = []
         
     def initialize_camera(self):
-        """Initialize camera with error handling"""
         try:
             self.cap = cv2.VideoCapture(0)
             if not self.cap.isOpened():
@@ -129,7 +125,6 @@ class GestureDetector(QThread):
         return False
         
     def start_detection(self):
-        """Start gesture detection"""
         if not self.initialize_camera():
             logger.error("Failed to start detection due to camera error")
             return False
@@ -147,7 +142,6 @@ class GestureDetector(QThread):
         return True
         
     def stop_detection(self):
-        """Stop gesture detection"""
         self.running = False
         if self.isRunning():
             self.quit()
@@ -159,14 +153,13 @@ class GestureDetector(QThread):
         logger.info("Gesture detection stopped")
             
     def run(self):
-        """Main detection loop"""
         while self.running:
             ret, frame = self.cap.read()
             if not ret:
                 logger.warning("Failed to capture frame")
                 continue
                 
-            frame = cv2.flip(frame, 1)  # Mirror image
+            frame = cv2.flip(frame, 1)
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = self.hands.process(rgb_frame)
             
@@ -182,29 +175,24 @@ class GestureDetector(QThread):
                     self.filter_gesture(gesture, confidence, finger_count)
                     
             self.frame_processed.emit(frame)
-            self.msleep(33)  # ~30 FPS
+            self.msleep(33)
             
     def rule_based_classify(self, landmarks) -> Tuple[str, float, int]:
-        """Rule-based gesture classification with improved logic"""
         try:
-            # Get landmark positions
             points = np.array([[lm.x, lm.y] for lm in landmarks.landmark])
             
-            # Count extended fingers
-            finger_tips = [4, 8, 12, 16, 20]  # Thumb, Index, Middle, Ring, Pinky
-            finger_pips = [3, 6, 10, 14, 18]  # Proximal Interphalangeal joints
+            finger_tips = [4, 8, 12, 16, 20]
+            finger_pips = [3, 6, 10, 14, 18]
             
             extended_fingers = 0
             
-            # Check each finger (except thumb)
             for i in range(1, 5):
                 tip_y = points[finger_tips[i]][1]
                 pip_y = points[finger_pips[i]][1]
-                if tip_y < pip_y:  # Finger is extended if tip is above PIP
+                if tip_y < pip_y:
                     extended_fingers += 1
                 logger.debug(f"Finger {i}: tip_y={tip_y:.3f}, pip_y={pip_y:.3f}, extended={tip_y < pip_y}")
             
-            # Handle thumb separately (check if thumb is extended outward)
             thumb_tip_x = points[4][0]
             thumb_pip_x = points[3][0]
             wrist_x = points[0][0]
@@ -215,7 +203,6 @@ class GestureDetector(QThread):
             
             logger.debug(f"Total extended fingers: {extended_fingers}")
             
-            # Classify gesture based on finger count
             if extended_fingers == 0 or extended_fingers == 1:
                 return Gesture.ROCK.value, 0.9, extended_fingers
             elif extended_fingers == 2 or extended_fingers == 3:
@@ -230,15 +217,12 @@ class GestureDetector(QThread):
             return Gesture.UNKNOWN.value, 0.0, 0
             
     def filter_gesture(self, gesture: str, confidence: float, finger_count: int):
-        """Filter gestures using temporal smoothing"""
         self.gesture_history.append((gesture, confidence, time.time(), finger_count))
         
-        # Keep only recent history
         current_time = time.time()
         self.gesture_history = [(g, c, t, f) for g, c, t, f in self.gesture_history 
                                if current_time - t < 1.0]
         
-        # Emit only stable gestures
         if len(self.gesture_history) >= 3:
             recent_gestures = [g for g, c, t, f in self.gesture_history[-5:]]
             if recent_gestures.count(gesture) >= 3 and confidence > 0.7:
@@ -246,13 +230,11 @@ class GestureDetector(QThread):
                 logger.info(f"Stable gesture emitted: {gesture}, confidence: {confidence}, fingers: {finger_count}")
 
 class SoundManager:
-    """Advanced sound management"""
     def __init__(self, enabled: bool = True):
         self.enabled = enabled
         self.sounds = {}
         
     def play(self, sound_name: str):
-        """Play sound effect"""
         if self.enabled:
             if sound_name == "win":
                 print("🎉 SOM DE VITÓRIA!")
@@ -262,8 +244,6 @@ class SoundManager:
                 print("🤝 SOM DE EMPATE!")
 
 class ThemeManager:
-    """Advanced theme management"""
-    
     @staticmethod
     def get_dark_theme() -> str:
         return """
@@ -395,8 +375,6 @@ class ThemeManager:
         """
 
 class StatsDialog(QDialog):
-    """Enhanced statistics dialog"""
-    
     def __init__(self, stats: GameStats, parent=None):
         super().__init__(parent)
         self.stats = stats
@@ -437,8 +415,6 @@ class StatsDialog(QDialog):
         self.setLayout(layout)
 
 class SettingsDialog(QDialog):
-    """Enhanced settings dialog"""
-    
     def __init__(self, settings: GameSettings, parent=None):
         super().__init__(parent)
         self.settings = settings
@@ -512,7 +488,6 @@ class SettingsDialog(QDialog):
         self.setLayout(layout)
         
     def save_settings(self):
-        """Save settings and close dialog"""
         self.settings.detection_confidence = self.detection_slider.value() / 100
         self.settings.countdown_duration = self.countdown_spin.value()
         self.settings.show_landmarks = self.landmarks_checkbox.isChecked()
@@ -521,15 +496,13 @@ class SettingsDialog(QDialog):
         self.accept()
 
 class HandsGestureRPS(QMainWindow):
-    """Main game window"""
-    
     def __init__(self):
         super().__init__()
         self.settings = GameSettings()
         self.stats = GameStats()
         self.sound_manager = SoundManager(self.settings.sound_enabled)
         self.gesture_detector = None
-        self.game_state = "waiting"  # waiting, countdown, playing, result
+        self.game_state = "waiting"
         self.countdown_timer = QTimer()
         self.countdown_value = 0
         self.player_gesture = None
@@ -545,16 +518,13 @@ class HandsGestureRPS(QMainWindow):
         self.load_language()
         
     def load_language(self):
-        """Load language based on settings"""
         if self.settings.language == "pt_BR":
-            # Note: Add .qm file for pt_BR translations if needed
             QCoreApplication.installTranslator(self.translator)
         elif self.settings.language == "en":
             QCoreApplication.removeTranslator(self.translator)
         self.retranslate_ui()
         
     def retranslate_ui(self):
-        """Update UI with translated text"""
         self.setWindowTitle(QCoreApplication.translate("Main", "HandsGestureRPS - Reconhecimento de Gestos"))
         self.camera_label.setText(QCoreApplication.translate("Main", "Feed da Câmera"))
         self.start_camera_btn.setText(QCoreApplication.translate("Main", "Iniciar Câmera") if self.gesture_detector is None else QCoreApplication.translate("Main", "Parar Câmera"))
@@ -572,7 +542,6 @@ class HandsGestureRPS(QMainWindow):
         self.draws_label.setText(str(self.stats.draws))
         
     def setup_ui(self):
-        """Setup main UI"""
         self.setWindowTitle(QCoreApplication.translate("Main", "HandsGestureRPS - Reconhecimento de Gestos"))
         self.setGeometry(100, 100, 1000, 700)
         
@@ -592,7 +561,6 @@ class HandsGestureRPS(QMainWindow):
         central_widget.setLayout(main_layout)
         
     def create_menu_bar(self):
-        """Create menu bar"""
         menubar = self.menuBar()
         
         game_menu = menubar.addMenu(QCoreApplication.translate("Main", "Jogo"))
@@ -618,7 +586,6 @@ class HandsGestureRPS(QMainWindow):
         game_menu.addAction(exit_action)
         
     def create_camera_panel(self):
-        """Create camera feed panel"""
         panel = QFrame()
         panel.setFrameStyle(QFrame.StyledPanel)
         layout = QVBoxLayout()
@@ -640,7 +607,6 @@ class HandsGestureRPS(QMainWindow):
         return panel
         
     def create_game_panel(self):
-        """Create game control panel"""
         panel = QFrame()
         panel.setFrameStyle(QFrame.StyledPanel)
         layout = QVBoxLayout()
@@ -709,18 +675,15 @@ class HandsGestureRPS(QMainWindow):
         return panel
         
     def setup_connections(self):
-        """Setup signal connections"""
         self.countdown_timer.timeout.connect(self.update_countdown)
         
     def toggle_camera(self):
-        """Toggle camera on/off"""
         if self.gesture_detector is None:
             self.start_camera()
         else:
             self.stop_camera()
             
     def start_camera(self):
-        """Start camera and gesture detection"""
         self.gesture_detector = GestureDetector(self.settings)
         self.gesture_detector.gesture_detected.connect(self.on_gesture_detected)
         self.gesture_detector.frame_processed.connect(self.update_camera_feed)
@@ -734,7 +697,6 @@ class HandsGestureRPS(QMainWindow):
             self.gesture_detector = None
             
     def stop_camera(self):
-        """Stop camera and gesture detection"""
         if self.gesture_detector:
             self.gesture_detector.stop_detection()
             self.gesture_detector = None
@@ -745,7 +707,6 @@ class HandsGestureRPS(QMainWindow):
         self.status_label.setText(QCoreApplication.translate("Main", "Câmera parada"))
         
     def update_camera_feed(self, frame):
-        """Update camera feed display"""
         height, width, channel = frame.shape
         bytes_per_line = 3 * width
         
@@ -761,7 +722,6 @@ class HandsGestureRPS(QMainWindow):
         self.camera_label.setPixmap(scaled_pixmap)
         
     def on_gesture_detected(self, gesture, confidence, finger_count):
-        """Handle detected gesture"""
         gesture_translated = {
             "rock": QCoreApplication.translate("Main", "Pedra"),
             "paper": QCoreApplication.translate("Main", "Papel"),
@@ -777,7 +737,6 @@ class HandsGestureRPS(QMainWindow):
             self.end_round()
             
     def start_round(self):
-        """Start a new round"""
         if self.game_state != "waiting":
             return
             
@@ -792,7 +751,6 @@ class HandsGestureRPS(QMainWindow):
         self.countdown_timer.start(1000)
         
     def update_countdown(self):
-        """Update countdown timer"""
         self.countdown_value -= 1
         
         if self.countdown_value > 0:
@@ -805,7 +763,6 @@ class HandsGestureRPS(QMainWindow):
             QTimer.singleShot(3000, self.end_round)
             
     def end_round(self):
-        """End the current round"""
         if self.game_state != "playing":
             return
             
@@ -825,7 +782,6 @@ class HandsGestureRPS(QMainWindow):
         QTimer.singleShot(3000, self.reset_for_next_round)
         
     def determine_winner(self, player, opponent):
-        """Determine the winner of the round"""
         if player == Gesture.UNKNOWN.value:
             return "loss"
             
@@ -844,7 +800,6 @@ class HandsGestureRPS(QMainWindow):
             return "loss"
             
     def update_stats(self, result):
-        """Update game statistics"""
         self.stats.total_games += 1
         
         if result == "win":
@@ -873,7 +828,6 @@ class HandsGestureRPS(QMainWindow):
             self.save_stats()
             
     def show_result(self, result):
-        """Show round result"""
         gesture_translated = {
             "rock": QCoreApplication.translate("Main", "Pedra"),
             "paper": QCoreApplication.translate("Main", "Papel"),
@@ -893,7 +847,6 @@ class HandsGestureRPS(QMainWindow):
         self.status_label.setText(message)
         
     def reset_for_next_round(self):
-        """Reset game state for next round"""
         self.game_state = "waiting"
         self.player_gesture = None
         self.opponent_gesture = None
@@ -901,12 +854,10 @@ class HandsGestureRPS(QMainWindow):
         self.play_btn.setEnabled(True)
         
     def new_game(self):
-        """Start a new game"""
         self.reset_game()
         self.status_label.setText(QCoreApplication.translate("Main", "Novo jogo iniciado!"))
         
     def reset_game(self):
-        """Reset game statistics and state"""
         self.stats = GameStats()
         self.game_state = "waiting"
         self.player_gesture = None
@@ -923,12 +874,10 @@ class HandsGestureRPS(QMainWindow):
             self.save_stats()
             
     def show_stats(self):
-        """Show statistics dialog"""
         dialog = StatsDialog(self.stats, self)
         dialog.exec_()
         
     def show_settings(self):
-        """Show settings dialog"""
         dialog = SettingsDialog(self.settings, self)
         if dialog.exec_():
             self.apply_settings()
@@ -937,7 +886,6 @@ class HandsGestureRPS(QMainWindow):
             self.load_language()
                 
     def apply_settings(self):
-        """Apply settings changes"""
         self.sound_manager.enabled = self.settings.sound_enabled
         if self.gesture_detector:
             self.gesture_detector.settings = self.settings
@@ -945,7 +893,6 @@ class HandsGestureRPS(QMainWindow):
             self.start_camera()
             
     def load_settings(self):
-        """Load settings from file"""
         settings = QSettings("xAI", "HandsGestureRPS")
         self.settings.detection_confidence = settings.value("detection_confidence", 0.7, float)
         self.settings.countdown_duration = settings.value("countdown_duration", 3, int)
@@ -954,7 +901,6 @@ class HandsGestureRPS(QMainWindow):
         self.settings.language = settings.value("language", "pt_BR", str)
         
     def save_settings(self):
-        """Save settings to file"""
         settings = QSettings("xAI", "HandsGestureRPS")
         settings.setValue("detection_confidence", self.settings.detection_confidence)
         settings.setValue("countdown_duration", self.settings.countdown_duration)
@@ -963,7 +909,6 @@ class HandsGestureRPS(QMainWindow):
         settings.setValue("language", self.settings.language)
         
     def save_stats(self):
-        """Save statistics to file"""
         try:
             with open("game_stats.json", "w") as f:
                 json.dump(asdict(self.stats), f)
@@ -971,11 +916,9 @@ class HandsGestureRPS(QMainWindow):
             logger.error(f"Failed to save stats: {e}")
             
     def apply_theme(self):
-        """Apply theme"""
         self.setStyleSheet(ThemeManager.get_dark_theme())
         
     def closeEvent(self, event):
-        """Handle window close event"""
         if self.gesture_detector:
             self.stop_camera()
         if self.settings.auto_save:
