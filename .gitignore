@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+logs/
+game_stats.json
+historico.json
+gesture_model.pkl
+.venv/
+env/
+venv/
